@@ -1,7 +1,7 @@
 package com.easycodingnow.fastman.agent;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * @author lihao
@@ -28,9 +29,10 @@ public class AgentController implements ApplicationContextAware {
 
             Object bean = applicationContext.getBean(cls);
 
-            JSONArray paramsArr = JSON.parseArray(request.getParams());
+            Gson gson = new Gson();
 
-            Object[] paramObjs = new Object[request.getParamTypes() != null && request.getParamTypes().size() > 0?request.getParamTypes().size():0];
+            List<Object> paramObjs = gson.fromJson(request.getParams(), new TypeToken<List<Object>>() {
+            }.getType());
 
             Method method;
 
@@ -58,8 +60,8 @@ public class AgentController implements ApplicationContextAware {
                         clsArr[i] = Class.forName(clsStr);
                     }
 
-                    if (paramsArr.get(i) != null) {
-                        paramObjs[i]= JSON.parseObject(paramsArr.get(i).toString(), clsArr[i]);
+                    if (paramObjs.get(i) != null) {
+                        paramObjs.set(i, gson.fromJson(gson.toJson(paramObjs.get(i)), clsArr[i]));
                     }
                 }
 
@@ -73,7 +75,7 @@ public class AgentController implements ApplicationContextAware {
 
             method.setAccessible(true);
 
-            return method.invoke(bean, paramObjs);
+            return method.invoke(bean, paramObjs.toArray());
         } catch (Exception e){
             e.printStackTrace();
             return "error message：" + e.getCause().toString() ;
